@@ -26,7 +26,7 @@ Behavior
 
 - Parses the image reference and defaults to `docker.io` and `library/` when omitted.
 - Tries a fast path first: GETs the manifest (and, if needed, image config blob) for the given tag and reads common version metadata labels (e.g., `org.opencontainers.image.version`). If found, returns immediately without scanning tags.
-- If no version labels are found, fetches the digest for the provided tag (default `latest`) and scans other tags to find the matching digest. Prefers semver-like tags first.
+- If no version labels are found, fetches the digest for the provided tag (default `latest`) and scans other tags to find the matching digest. It prioritizes likely matches based on the input tag, runs manifest lookups concurrently, and caches digests both in memory and on disk for later runs.
 - Prints a simple mapping line: `<image>:<input-tag> -> <matched-tag> (digest <sha256:...>)`.
 
 Authentication
@@ -43,3 +43,4 @@ Notes
 
 - Only public images are supported out-of-the-box. For private registries, extend the client to accept credentials and pass them to the token service.
 - Network errors or registry-specific quirks may affect results; the tool falls back from HEAD to GET to retrieve digest headers when necessary.
+- Digest cache is stored at `$XDG_CACHE_HOME/container-tags/digest-cache.json` when available. Override with `CONTAINER_TAGS_CACHE_PATH`.

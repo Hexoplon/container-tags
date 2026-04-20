@@ -63,7 +63,6 @@ func main() {
 		tag = "latest"
 	}
 
-	// Optional auth: derive from flags or environment based on registry
 	ensureAuthForRegistry(client, img.Registry, &username, &password, &registryToken)
 	if registryToken != "" {
 		client.SetStaticBearer(registryToken)
@@ -76,10 +75,12 @@ func main() {
 		d, v, ok, err := client.InferVersionFromTag(img, tag)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error inferring version: %v\n", err)
+			client.Close()
 			os.Exit(1)
 		}
 		if !ok {
 			fmt.Fprintf(os.Stderr, "no version labels found on %s:%s\n", refs.String(img), tag)
+			client.Close()
 			os.Exit(4)
 		}
 		if tagOnly {
@@ -87,6 +88,7 @@ func main() {
 		} else {
 			fmt.Printf("%s:%s -> %s (digest %s)\n", refs.String(img), tag, v, d)
 		}
+		client.Close()
 		return
 	}
 
@@ -94,18 +96,20 @@ func main() {
 	if err != nil {
 		if errors.Is(err, registry.ErrNoMatchingTag) {
 			fmt.Fprintf(os.Stderr, "no matching tag found for %s:%s (digest %s)\n", refs.String(img), tag, latestDigest)
+			client.Close()
 			os.Exit(3)
 		}
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		client.Close()
 		os.Exit(1)
 	}
 
-	// Print mapping in a simple, script-friendly way.
 	if tagOnly {
 		fmt.Printf("%s\n", matched)
 	} else {
 		fmt.Printf("%s:%s -> %s (digest %s)\n", refs.String(img), tag, matched, latestDigest)
 	}
+	client.Close()
 }
 
 // ensureAuthForRegistry tries to populate username/password/token from env if not provided via flags.
